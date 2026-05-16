@@ -12,7 +12,7 @@ from collections.abc import Iterator
 
 import pytest
 from mcp.shared.exceptions import McpError
-from mcp.types import INTERNAL_ERROR
+from mcp.types import METHOD_NOT_FOUND
 
 import src.server.api.access_control as ac
 
@@ -145,7 +145,7 @@ def test_enforce_access_blocks_tool_not_in_allowlist(
     with pytest.raises(McpError) as exc_info:
         ac.enforce_access("get_runs")
     err = exc_info.value
-    assert err.error.code == INTERNAL_ERROR
+    assert err.error.code == METHOD_NOT_FOUND  # -32601 — tool unavailable to caller
     assert "Tool 'get_runs'" in err.error.message
     assert "TESTRAIL_ALLOWED_TOOLS" in err.error.message
     assert "allowlist" in err.error.message

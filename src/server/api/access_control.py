@@ -23,7 +23,7 @@ import os
 from collections.abc import Mapping
 
 from mcp.shared.exceptions import McpError
-from mcp.types import INTERNAL_ERROR, ErrorData
+from mcp.types import INVALID_REQUEST, METHOD_NOT_FOUND, ErrorData
 
 logger = logging.getLogger(__name__)
 
@@ -159,11 +159,25 @@ def enforce_access(tool_name: str) -> None:
     (safer to surface "read-only mode" than "tool allowed" when both
     flags conflict).
 
+    Error codes follow JSON-RPC 2.0 semantics so programmatic consumers
+    (e.g. an AaaS scheduler) can distinguish a policy denial from an
+    unknown method or a server bug:
+
+    - Read-only denial -> `INVALID_REQUEST` (-32600). The request is
+      well-formed and the tool exists, but the server's current policy
+      forbids it. A retry with the same body will keep failing; a retry
+      with a read tool may succeed.
+    - Allowlist denial -> `METHOD_NOT_FOUND` (-32601). From the caller's
+      perspective the tool is not available. Use the same code regular
+      MCP servers use for unknown methods so generic agent code that
+      already handles -32601 (e.g. "discover available tools and try
+      another") works without special-casing this server.
+
     No-op when access is allowed.
     """
     if _read_only and tool_name in WRITE_TOOL_NAMES:
         raise McpError(ErrorData(
-            code=INTERNAL_ERROR,
+            code=INVALID_REQUEST,
             message=(
                 f"TestRail MCP is in read-only mode (TESTRAIL_READ_ONLY=1). "
                 f"Tool '{tool_name}' is blocked."
@@ -171,7 +185,7 @@ def enforce_access(tool_name: str) -> None:
         ))
     if _allowed_tools is not None and tool_name not in _allowed_tools:
         raise McpError(ErrorData(
-            code=INTERNAL_ERROR,
+            code=METHOD_NOT_FOUND,
             message=(
                 f"Tool '{tool_name}' not in TESTRAIL_ALLOWED_TOOLS allowlist."
             ),

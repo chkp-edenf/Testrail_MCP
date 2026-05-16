@@ -84,6 +84,28 @@ def test_every_alias_target_exists_in_dispatcher() -> None:
     assert missing == set(), f"alias targets not in dispatcher: {missing}"
 
 
+def test_no_alias_targets_a_write_tool() -> None:
+    """Forward-compat guard (spektr v2 MEDIUM).
+
+    The current 28-entry alias map only points at read tools. If a
+    future PR adds an alias whose canonical target is in
+    `WRITE_TOOL_NAMES`, this test fails — forcing the contributor to
+    confirm the gating implications. The dispatcher already runs alias
+    resolution BEFORE `enforce_access`, so a write-aliased call IS
+    blocked under TESTRAIL_READ_ONLY=1; this test just makes the
+    "we accept this" decision explicit at the alias-map definition.
+    """
+    write_aliases = {
+        alias: canonical
+        for alias, canonical in al.BUN913_ALIASES.items()
+        if canonical in ac.WRITE_TOOL_NAMES
+    }
+    assert write_aliases == {}, (
+        f"bun913 aliases that resolve to write tools — confirm gating "
+        f"implications in plan-005 before landing: {write_aliases}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # camel_to_snake — generic translator
 # ---------------------------------------------------------------------------
