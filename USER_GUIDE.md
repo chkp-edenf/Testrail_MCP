@@ -25,7 +25,7 @@
 This guide walks you through:
 1. Setting up the TestRail MCP Server
 2. Configuring it with Claude Code, Claude Desktop, VS Code, or Cursor
-3. Using the 68 flat MCP tools effectively
+3. Using the 74 flat MCP tools effectively
 4. Read-only mode and tool-allowlist gating
 5. Uploading attachments and embedding images
 6. Troubleshooting common issues

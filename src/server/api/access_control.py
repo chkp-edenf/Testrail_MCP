@@ -44,6 +44,7 @@ WRITE_TOOL_NAMES: frozenset[str] = frozenset({
     "add_milestone", "update_milestone", "delete_milestone",
     "add_config_group", "add_config",
     "upload_attachment", "delete_attachment",
+    "add_shared_step", "update_shared_step", "delete_shared_step",
 })
 
 

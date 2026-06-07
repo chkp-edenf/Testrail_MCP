@@ -50,6 +50,10 @@ from .attachments import (
     handle_upload_attachment, handle_list_attachments,
     handle_get_attachment, handle_delete_attachment
 )
+from .shared_steps import (
+    handle_get_shared_steps, handle_get_shared_step, handle_get_shared_step_history,
+    handle_add_shared_step, handle_update_shared_step, handle_delete_shared_step
+)
 
 
 # Type alias for handler functions
@@ -159,6 +163,14 @@ def get_tool_handlers() -> dict[str, ToolHandler]:
         "list_attachments": handle_list_attachments,
         "get_attachment": handle_get_attachment,
         "delete_attachment": handle_delete_attachment,
+
+        # Shared Steps
+        "get_shared_steps": handle_get_shared_steps,
+        "get_shared_step": handle_get_shared_step,
+        "get_shared_step_history": handle_get_shared_step_history,
+        "add_shared_step": handle_add_shared_step,
+        "update_shared_step": handle_update_shared_step,
+        "delete_shared_step": handle_delete_shared_step,
     }
 
 
@@ -234,5 +246,11 @@ __all__ = [
     "handle_list_attachments",
     "handle_get_attachment",
     "handle_delete_attachment",
+    "handle_get_shared_steps",
+    "handle_get_shared_step",
+    "handle_get_shared_step_history",
+    "handle_add_shared_step",
+    "handle_update_shared_step",
+    "handle_delete_shared_step",
 ]
 
