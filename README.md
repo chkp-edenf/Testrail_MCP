@@ -2,7 +2,7 @@
 
 **Connect AI assistants to your TestRail instance via the Model Context Protocol**
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)]()
 [![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)]()
 
@@ -12,7 +12,7 @@
 
 ## Highlights
 
-- **74 flat MCP tools** covering every TestRail v2 endpoint (cases, runs, plans, results, attachments, …)
+- **75 flat MCP tools** covering every TestRail v2 endpoint (cases, runs, plans, results, attachments, …)
 - **Server-side gates** — `TESTRAIL_READ_ONLY` write-block, `TESTRAIL_ALLOWED_TOOLS` allowlist
 - **bun913-compat aliases** — drop-in replacement for the bun913 fork (gated by `TESTRAIL_LEGACY_ALIASES`, default on)
 - **Attachment support** — upload screenshots and files to cases, results, runs, plans
@@ -30,12 +30,12 @@ One-liner installers that detect your AI client, prompt for your TestRail creden
 
 **macOS / Linux**
 ```sh
-curl -LsSf https://raw.githubusercontent.com/chkp-edenf/HarmonySASE_Testrail_MCP/main/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/chkp-edenf/Testrail_MCP/main/install.sh | sh
 ```
 
 **Windows (PowerShell)**
 ```powershell
-irm https://raw.githubusercontent.com/chkp-edenf/HarmonySASE_Testrail_MCP/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/chkp-edenf/Testrail_MCP/main/install.ps1 | iex
 ```
 
 The wizard walks you through picking Claude Code / Claude Desktop / both, entering the TestRail URL + login + API key, and writes the config.
@@ -61,7 +61,7 @@ Add this to your MCP client configuration:
   "mcpServers": {
     "testrail": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP.git", "testrail-mcp"],
+      "args": ["--from", "git+https://github.com/chkp-edenf/Testrail_MCP.git", "testrail-mcp"],
       "env": {
         "TESTRAIL_URL": "https://your-instance.testrail.io",
         "TESTRAIL_USERNAME": "your-email@company.com",
@@ -105,7 +105,7 @@ This enables natural language field values (e.g., "High" instead of priority ID 
 
 ## Available Tools
 
-The dispatcher exposes **74 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 compatibility layer (`TESTRAIL_LEGACY_ALIASES=1`, default on) accepts the camelCase aliases used by the bun913 fork (`getCases`, `addCase`, …) and resolves them to the canonical names.
+The dispatcher exposes **75 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 compatibility layer (`TESTRAIL_LEGACY_ALIASES=1`, default on) accepts the camelCase aliases used by the bun913 fork (`getCases`, `addCase`, …) and resolves them to the canonical names.
 
 | Resource | Read | Write |
 |---|---|---|
@@ -181,7 +181,7 @@ AI: Queries results, formats as a readable table.
          │ MCP Protocol (stdio JSON-RPC)
 ┌────────▼─────────┐
 │   MCP Server     │  (This project — runs via uvx)
-│   74 flat tools  │
+│   75 flat tools  │
 └────────┬─────────┘
          │ HTTPS + Basic Auth
 ┌────────▼─────────┐
@@ -244,9 +244,9 @@ Pick whichever form fits your workflow. All four launch the same server.
 | Source | Command | Pinning |
 |---|---|---|
 | **PyPI (latest)** | `uvx testrail-mcp` | tracks the newest published v2.x |
-| **PyPI (pinned)** | `uvx testrail-mcp==2.0.0` | exact version |
-| **Git (release tag)** | `uvx --from git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP@v2.0.0 testrail-mcp` | exact tag, no PyPI required |
-| **Git (pinned SHA)** | `uvx --from git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP@<sha> testrail-mcp` | exact commit, audit-friendly |
+| **PyPI (pinned)** | `uvx testrail-mcp==2.1.0` | exact version |
+| **Git (release tag)** | `uvx --from git+https://github.com/chkp-edenf/Testrail_MCP@v2.1.0 testrail-mcp` | exact tag, no PyPI required |
+| **Git (pinned SHA)** | `uvx --from git+https://github.com/chkp-edenf/Testrail_MCP@<sha> testrail-mcp` | exact commit, audit-friendly |
 | **Local source** | `uvx --from /path/to/local/repo testrail-mcp` | live dev |
 
 Embedding `testrail-core` directly (no MCP):
@@ -265,7 +265,7 @@ client = TestRailClient(config, rate_limiter=rate_limiter)
 projects = await client.projects.get_projects()
 ```
 
-> The PyPI install paths require v2.0.0 to be tagged and the publish workflow to run. Until then, use the `git+` forms above.
+> The PyPI install paths require v2.1.0 to be tagged and the publish workflow to run. Until then, use the `git+` forms above.
 
 ---
 

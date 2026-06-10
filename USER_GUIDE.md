@@ -1,6 +1,6 @@
 # TestRail MCP Server - User Guide
 
-**Version 2.0.0 - Setup and Usage Instructions**
+**Version 2.1.0 - Setup and Usage Instructions**
 
 ## Table of Contents
 - [What You'll Learn](#what-youll-learn)
@@ -25,7 +25,7 @@
 This guide walks you through:
 1. Setting up the TestRail MCP Server
 2. Configuring it with Claude Code, Claude Desktop, VS Code, or Cursor
-3. Using the 74 flat MCP tools effectively
+3. Using the 75 flat MCP tools effectively
 4. Read-only mode and tool-allowlist gating
 5. Uploading attachments and embedding images
 6. Troubleshooting common issues
@@ -84,7 +84,7 @@ Choose your AI client below. All use the same MCP server configuration — only 
   "mcpServers": {
     "testrail": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP.git", "testrail-mcp"],
+      "args": ["--from", "git+https://github.com/chkp-edenf/Testrail_MCP.git", "testrail-mcp"],
       "env": {
         "TESTRAIL_URL": "https://your-instance.testrail.io",
         "TESTRAIL_USERNAME": "your-email@company.com",
@@ -214,7 +214,7 @@ Set `TESTRAIL_READ_ONLY=1` in your MCP env block to embed the server in environm
   "mcpServers": {
     "testrail-readonly": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP.git", "testrail-mcp"],
+      "args": ["--from", "git+https://github.com/chkp-edenf/Testrail_MCP.git", "testrail-mcp"],
       "env": {
         "TESTRAIL_URL": "https://your-instance.testrail.io",
         "TESTRAIL_USERNAME": "your-email@company.com",
@@ -520,5 +520,5 @@ uv cache clean testrail-mcp --force
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Maintainer:** Harmony SASE Team
