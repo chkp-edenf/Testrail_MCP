@@ -23,6 +23,22 @@ from .exceptions import (
 
 logger = logging.getLogger(__name__)
 
+# Maximum upstream response body length to include in error log lines.
+# Bodies can echo back request URLs (which may contain a redirected
+# Authorization header in misconfigured setups) and other operator-
+# sensitive content. The full body remains on the raised exception's
+# `response_data` for callers that need it — only the log line is
+# truncated. spektr v2.0 MEDIUM.
+_ERROR_LOG_BODY_MAX = 500
+
+
+def _trunc_for_log(value: object, limit: int = _ERROR_LOG_BODY_MAX) -> str:
+    """Stringify and truncate a value for inclusion in a single log line."""
+    text = str(value)
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}... [truncated, {len(text) - limit} more chars]"
+
 
 class ClientConfig(BaseModel):
     """Configuration for TestRail API client"""
@@ -157,7 +173,13 @@ class BaseAPIClient:
                     error_data = {"raw_response": response_text}
                     error_message = response_text
                 
-                logger.error(f"HTTP {status} on {method} {endpoint}: {error_message}")
+                logger.error(
+                    "HTTP %s on %s %s: %s",
+                    status,
+                    method,
+                    endpoint,
+                    _trunc_for_log(error_message),
+                )
                 
                 # Raise specific error based on status code
                 if status == 400:
@@ -226,10 +248,18 @@ class BaseAPIClient:
                 raise
                 
             except Exception as e:
-                logger.error(f"Unexpected error on {method} {endpoint}: {str(e)}")
+                logger.error(
+                    "Unexpected error on %s %s: %s",
+                    method,
+                    endpoint,
+                    _trunc_for_log(e),
+                )
                 if metrics_available:
                     record_request_failure()
-                raise TestRailError(f"Unexpected error: {str(e)}")
+                # `raise ... from e` preserves the original traceback so
+                # operators can see the underlying cause in logs. spektr
+                # v2.0 LOW.
+                raise TestRailError(f"Unexpected error: {_trunc_for_log(e)}") from e
         
         # Should not reach here, but raise last exception if we do
         if last_exception:

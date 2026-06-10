@@ -1,8 +1,10 @@
 """Tests for the TESTRAIL_READ_ONLY env flag.
 
 Phase 1 of v2.0: server-side write block. Verifies that enforce_access()
-raises McpError(-32603) for every write tool when read-only mode is on,
-and is a no-op for read tools or when the flag is off.
+raises McpError(INVALID_REQUEST, -32600) for every write tool when
+read-only mode is on, and is a no-op for read tools or when the flag
+is off. v2.0.1 hardening swapped INTERNAL_ERROR -> INVALID_REQUEST so
+JSON-RPC consumers can distinguish policy denial from a server bug.
 """
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ from collections.abc import Iterator
 
 import pytest
 from mcp.shared.exceptions import McpError
-from mcp.types import INTERNAL_ERROR
+from mcp.types import INVALID_REQUEST
 
 import src.server.api.access_control as ac
 
@@ -84,7 +86,7 @@ def test_enforce_access_blocks_write_tool_when_read_only(
         ac.enforce_access(tool)
 
     err = exc_info.value
-    assert err.error.code == INTERNAL_ERROR  # -32603 per JSON-RPC 2.0
+    assert err.error.code == INVALID_REQUEST  # -32600 — well-formed request, policy denied
     assert "read-only mode" in err.error.message
     assert "TESTRAIL_READ_ONLY=1" in err.error.message
     assert f"Tool '{tool}'" in err.error.message
