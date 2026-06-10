@@ -1,6 +1,6 @@
 # TestRail MCP Server - User Guide
 
-**Version 2.1.0 - Setup and Usage Instructions**
+**Version 2.2.0 - Setup and Usage Instructions**
 
 ## Table of Contents
 - [What You'll Learn](#what-youll-learn)
@@ -11,7 +11,6 @@
 - [Step 4: Populate the Cache](#step-4-populate-the-cache)
 - [Read-Only Mode](#read-only-mode)
 - [Restricting the Tool Surface](#restricting-the-tool-surface)
-- [bun913 Migration](#bun913-migration)
 - [Common Workflows](#common-workflows)
 - [Working with Attachments](#working-with-attachments)
 - [Filtering and Pagination](#filtering-and-pagination)
@@ -207,7 +206,7 @@ This maps status names to IDs (e.g., "Passed" → ID 1, "Failed" → ID 5).
 
 Set `TESTRAIL_READ_ONLY=1` in your MCP env block to embed the server in environments that must not mutate TestRail data — production AI assistants, demos, shared sessions, untrusted prompts.
 
-**What it does:** every write tool (the canonical 36-tool write set: `add_*`, `update_*`, `delete_*`, `close_*`, `copy_*`, `move_*`, `upload_attachment`) is blocked at the dispatcher and returns an error to the AI client. Read tools are unaffected.
+**What it does:** every write tool (the canonical 39-tool write set: `add_*`, `update_*`, `delete_*`, `close_*`, `copy_*`, `move_*`, `upload_attachment`) is blocked at the dispatcher and returns an error to the AI client. Read tools are unaffected.
 
 ```json
 {
@@ -248,18 +247,7 @@ Set `TESTRAIL_ALLOWED_TOOLS` to a comma-separated list of tool names to make the
 - `TESTRAIL_ALLOWED_TOOLS=...` blocks every tool not on the list, regardless of read/write.
 - Both together: the tool must pass *both* gates.
 
-**Tool names** are the canonical snake_case names listed in [README.md → Available Tools](README.md#available-tools). Aliases (camelCase) are resolved before the allowlist check, so `getCases` works in the allowlist if the bun913 layer is on.
-
----
-
-## bun913 Migration
-
-If you're switching from the bun913 fork, the server accepts the 28 camelCase tool names from that fork by default and resolves them to canonical snake_case names. No client-side changes are needed — your existing prompts continue to work.
-
-`TESTRAIL_LEGACY_ALIASES=1` (default) → camelCase aliases enabled.
-`TESTRAIL_LEGACY_ALIASES=0` → only canonical snake_case names accepted; legacy aliases return a "tool not found" error.
-
-Migrate your client to canonical names at your own pace, then flip the flag to `0` to remove ambiguity.
+**Tool names** are the canonical snake_case names listed in [README.md → Available Tools](README.md#available-tools).
 
 ---
 
@@ -520,5 +508,5 @@ uv cache clean testrail-mcp --force
 
 ---
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Maintainer:** Harmony SASE Team

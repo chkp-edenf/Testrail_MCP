@@ -32,7 +32,6 @@ from mcp.types import TextContent, Tool
 # Import client and modular tool registration
 from src.client.api import ClientConfig, TestRailClient
 from src.server.api.access_control import configure_access, enforce_access
-from src.server.api.aliases import configure_aliases, resolve as resolve_alias
 from src.server.api.cache_preload import configure_preload, preload_caches
 from src.server.api.rate_limiter import rate_limiter
 
@@ -71,7 +70,6 @@ async def main():
 
         # Resolve access-control flags (logs mode to stderr).
         configure_access()
-        configure_aliases()
         configure_preload()
         
         # Normalize and configure API client
@@ -121,27 +119,21 @@ async def main():
             """Route tool calls to appropriate handlers"""
             logger.info(f"Tool called: {name}")
 
-            # Resolve bun913 / camelCase alias to canonical (name, args)
-            # BEFORE the gates fire, so read-only and allowlist checks
-            # always run against the canonical handler name. No-op when
-            # TESTRAIL_LEGACY_ALIASES=0 or when name is already canonical.
-            canonical_name, canonical_args = resolve_alias(name, arguments)
-
             # Access-control gate. Raises McpError before any handler work.
             # Kept outside the try/except below so McpError propagates as a
             # JSON-RPC error response rather than being wrapped as TextContent.
-            enforce_access(canonical_name)
+            enforce_access(name)
 
             try:
-                handler = tool_handlers.get(canonical_name)
+                handler = tool_handlers.get(name)
                 if handler:
-                    return await handler(canonical_args, client)
+                    return await handler(arguments, client)
                 else:
                     return [TextContent(type="text", text=f"Unknown tool: {name}")]
             except McpError:
                 raise
             except Exception as e:
-                logger.error(f"Error calling tool {canonical_name}: {str(e)}")
+                logger.error(f"Error calling tool {name}: {str(e)}")
                 return [TextContent(type="text", text=f"Error: {str(e)}")]
         
         logger.info("Tool handler registered")
