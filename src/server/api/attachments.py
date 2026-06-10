@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from mcp.types import TextContent
 from .utils import create_success_response, create_error_response, require_fields
 
@@ -17,13 +18,29 @@ ALLOWED_EXTENSIONS = {
     ".mp4", ".mov", ".avi",                              # video
 }
 
-# Security: blocked path patterns (case-insensitive check)
-BLOCKED_PATHS = [
-    ".ssh", ".gnupg", ".aws", ".azure", ".gcloud",
-    ".env", ".git/config", ".netrc", ".npmrc", ".pypirc",
-    "credentials", "secrets", "private_key", "id_rsa", "id_ed25519",
-    ".kube/config", ".docker/config",
-]
+# Security: blocked directory names. Matched against path COMPONENTS of
+# the resolved path (not substring) so a benign `/work/credentials-mgr/
+# screenshot.png` no longer triggers a false-positive block. spektr v2.0
+# HIGH finding.
+BLOCKED_DIR_NAMES: frozenset[str] = frozenset({
+    ".ssh", ".gnupg", ".aws", ".azure", ".gcloud", ".kube", ".docker",
+})
+
+# Security: blocked exact filename matches (resolved basename).
+BLOCKED_FILE_NAMES: frozenset[str] = frozenset({
+    ".env", ".netrc", ".npmrc", ".pypirc",
+    "id_rsa", "id_ed25519", "id_dsa", "id_ecdsa",
+    "credentials", "config",  # bare names commonly used by .aws/, .docker/
+})
+
+# Security: substring keywords matched against the resolved BASENAME
+# only (not the full path). spektr v2.0 false-positive was substring
+# match on the directory portion ("/work/credentials-mgr/photo.png");
+# restricting to basename keeps "aws_credentials.json" blocked but
+# lets benign files inside directories with these names through.
+_BLOCKED_BASENAME_KEYWORDS: tuple[str, ...] = (
+    "credentials", "secrets", "private_key",
+)
 
 # Map entity_type to the appropriate client method names
 UPLOAD_METHODS = {
@@ -42,27 +59,81 @@ LIST_METHODS = {
 }
 
 
-def _validate_file_path(file_path: str) -> None:
-    """Validate file path for security and allowed extensions."""
-    normalized = os.path.normpath(os.path.abspath(file_path))
-    lower_path = normalized.lower()
+def _validate_file_path(file_path: str) -> Path:
+    """Validate `file_path` for security and allowed extensions.
 
-    # Block sensitive paths
-    for blocked in BLOCKED_PATHS:
-        if blocked.lower() in lower_path:
-            raise ValueError(f"Upload blocked: path contains sensitive pattern '{blocked}'")
+    Returns the resolved canonical `Path` so the caller can `open()` it
+    directly without re-resolving (avoids a TOCTOU window between
+    validation and read).
 
-    # Check file extension
-    _, ext = os.path.splitext(normalized)
-    if ext.lower() not in ALLOWED_EXTENSIONS:
+    Security model (spektr v2.0 HIGH fix):
+    - Symlinks are rejected outright, so a `screenshot.png` pointing at
+      `~/.aws/credentials` cannot bypass the path checks.
+    - The resolved path's components are matched against
+      `BLOCKED_DIR_NAMES` exactly — substring matches on the original
+      path are gone, so `/work/credentials-mgr/photo.png` is no longer
+      a false positive.
+    - The resolved basename is matched against `BLOCKED_FILE_NAMES`
+      exactly and against `_BLOCKED_BASENAME_KEYWORDS` word-bounded.
+    - Extension and file-type checks run after, on the resolved path.
+    """
+    raw = Path(file_path)
+
+    # Reject symlinks BEFORE resolution. We use lstat so a missing file
+    # raises a clearer "File not found" than a symlink-related error.
+    try:
+        if raw.is_symlink():
+            raise ValueError(
+                f"Upload blocked: '{file_path}' is a symbolic link. "
+                "Resolve and pass the real path explicitly."
+            )
+    except OSError as exc:
+        raise ValueError(f"Cannot access path '{file_path}': {exc}") from exc
+
+    # Resolve to canonical absolute path. strict=True raises if missing.
+    try:
+        resolved = raw.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise ValueError(f"File not found: {file_path}") from exc
+    except OSError as exc:
+        raise ValueError(f"Cannot resolve path '{file_path}': {exc}") from exc
+
+    if not resolved.is_file():
+        raise ValueError(f"Not a regular file: {file_path}")
+
+    # Path component check — exact match on any segment of the resolved
+    # absolute path. Case-insensitive for portability across macOS HFS+
+    # (case-preserving) and Windows.
+    lower_parts = {part.lower() for part in resolved.parts}
+    blocked_hit = lower_parts & {name.lower() for name in BLOCKED_DIR_NAMES}
+    if blocked_hit:
         raise ValueError(
-            f"Upload blocked: extension '{ext}' not allowed. "
+            f"Upload blocked: path traverses sensitive directory "
+            f"{sorted(blocked_hit)[0]!r}"
+        )
+
+    basename_lower = resolved.name.lower()
+
+    if basename_lower in {name.lower() for name in BLOCKED_FILE_NAMES}:
+        raise ValueError(
+            f"Upload blocked: filename {resolved.name!r} is on the "
+            "sensitive-files deny list"
+        )
+
+    for keyword in _BLOCKED_BASENAME_KEYWORDS:
+        if keyword in basename_lower:
+            raise ValueError(
+                f"Upload blocked: filename {resolved.name!r} matches a "
+                f"sensitive keyword ({keyword!r})"
+            )
+
+    if resolved.suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise ValueError(
+            f"Upload blocked: extension '{resolved.suffix}' not allowed. "
             f"Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
         )
 
-    # Verify file exists and is a regular file
-    if not os.path.isfile(normalized):
-        raise ValueError(f"File not found: {file_path}")
+    return resolved
 
 
 async def handle_upload_attachment(arguments: dict, client) -> list[TextContent]:
@@ -74,10 +145,12 @@ async def handle_upload_attachment(arguments: dict, client) -> list[TextContent]
         entity_id = int(arguments["entity_id"])
         file_path = arguments["file_path"]
 
-        _validate_file_path(file_path)
+        # Returns the resolved canonical path — open() against it closes
+        # the validate→open TOCTOU window that a re-resolve would leave.
+        resolved = _validate_file_path(file_path)
 
-        filename = arguments.get("filename", os.path.basename(file_path))
-        with open(file_path, "rb") as f:
+        filename = arguments.get("filename", resolved.name)
+        with resolved.open("rb") as f:
             file_data = f.read()
 
         method_name = UPLOAD_METHODS.get(entity_type)
