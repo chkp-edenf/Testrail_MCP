@@ -2,7 +2,7 @@
   "mcpServers": {
     "testrail": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chkp-edenf/HarmonySASE_Testrail_MCP.git", "testrail-mcp"],
+      "args": ["--from", "git+https://github.com/chkp-edenf/Testrail_MCP.git", "testrail-mcp"],
       "env": {
         "TESTRAIL_URL": "https://your-instance.testrail.io",
         "TESTRAIL_USERNAME": "your-email@company.com",
