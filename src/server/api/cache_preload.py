@@ -22,9 +22,24 @@ import os
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
+from testrail_core.client.exceptions import (
+    TestRailAuthenticationError,
+    TestRailPermissionError,
+)
+
 from . import case_type_cache, field_cache, priority_cache, status_cache
 
 logger = logging.getLogger(__name__)
+
+
+# Errors that mean the server will never recover by lazy retry. Surfacing
+# them at ERROR level (vs WARNING) prevents an operator from misreading
+# the "case_fields(0) statuses(0)" summary as "no data yet" when the
+# real cause is bad credentials or revoked API access.
+_FATAL_PRELOAD_ERRORS: tuple[type[BaseException], ...] = (
+    TestRailAuthenticationError,
+    TestRailPermissionError,
+)
 
 
 _TRUTHY_VALUES: frozenset[str] = frozenset({"1", "true", "yes", "on"})
@@ -98,11 +113,26 @@ async def _preload_one(
     update: Callable[[list[Any]], None],
     counts: dict[str, int],
 ) -> None:
-    """Run a single preload step. Failures log a warning and zero the count."""
+    """Run a single preload step.
+
+    Auth / permission errors log at ERROR level so operators don't read
+    a `<cache>(0)` summary as "no data yet" when credentials are wrong.
+    Other failures log at WARNING and the cache populates lazily on
+    first tool use.
+    """
     try:
         result = await fetch()
         update(result)
         counts[label] = len(result)
+    except _FATAL_PRELOAD_ERRORS as exc:
+        counts[label] = 0
+        logger.error(
+            "[testrail-mcp] preload auth/permission failure for %s: %s: %s — "
+            "lazy retry will not recover; check TESTRAIL_USERNAME / TESTRAIL_API_KEY",
+            label,
+            type(exc).__name__,
+            exc,
+        )
     except Exception as exc:
         counts[label] = 0
         logger.warning(
@@ -131,6 +161,14 @@ async def preload_caches(client: Any) -> None:
         field_map, required = _build_field_map(fields)
         field_cache.update_cache(field_map, required)
         counts["case_fields"] = len(fields)
+    except _FATAL_PRELOAD_ERRORS as exc:
+        counts["case_fields"] = 0
+        logger.error(
+            "[testrail-mcp] preload auth/permission failure for case_fields: %s: %s — "
+            "lazy retry will not recover; check TESTRAIL_USERNAME / TESTRAIL_API_KEY",
+            type(exc).__name__,
+            exc,
+        )
     except Exception as exc:
         counts["case_fields"] = 0
         logger.warning(

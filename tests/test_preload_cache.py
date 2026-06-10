@@ -239,3 +239,86 @@ def test_preload_marks_failed_cache_with_zero_count(
     assert "case_fields(2)" in caplog.text
     assert "case_types(2)" in caplog.text
     assert "priorities(2)" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Auth/permission errors log at ERROR — operators must not confuse a
+# bad-credentials failure with "no data yet". spektr HIGH from v2 review.
+# ---------------------------------------------------------------------------
+
+def test_preload_logs_auth_error_at_error_level_for_case_fields(
+    mock_client: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from testrail_core.client.exceptions import TestRailAuthenticationError
+
+    monkeypatch.setattr(cp, "_enabled", True)
+    mock_client.case_fields.get_case_fields = AsyncMock(
+        side_effect=TestRailAuthenticationError("401 Unauthorized"),
+    )
+
+    with caplog.at_level(logging.WARNING, logger=_CP_LOGGER):
+        asyncio.run(cp.preload_caches(mock_client))
+
+    # Find the auth-failure record — must be ERROR, not WARNING.
+    auth_records = [
+        r for r in caplog.records
+        if r.name == _CP_LOGGER and "case_fields" in r.getMessage()
+        and "auth/permission" in r.getMessage()
+    ]
+    assert len(auth_records) == 1
+    assert auth_records[0].levelno == logging.ERROR
+    assert "TESTRAIL_USERNAME" in auth_records[0].getMessage()
+
+
+def test_preload_logs_permission_error_at_error_level_for_subsequent_fetcher(
+    mock_client: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from testrail_core.client.exceptions import TestRailPermissionError
+
+    monkeypatch.setattr(cp, "_enabled", True)
+    mock_client.statuses.get_statuses = AsyncMock(
+        side_effect=TestRailPermissionError("403 Forbidden"),
+    )
+
+    with caplog.at_level(logging.WARNING, logger=_CP_LOGGER):
+        asyncio.run(cp.preload_caches(mock_client))
+
+    perm_records = [
+        r for r in caplog.records
+        if r.name == _CP_LOGGER and "statuses" in r.getMessage()
+        and "auth/permission" in r.getMessage()
+    ]
+    assert len(perm_records) == 1
+    assert perm_records[0].levelno == logging.ERROR
+
+
+def test_preload_logs_non_auth_failure_at_warning_level(
+    mock_client: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Regression guard — only auth/permission failures escalate to ERROR.
+
+    Network glitches, timeouts, and other transient errors stay at
+    WARNING because lazy retry on first tool call may recover.
+    """
+    monkeypatch.setattr(cp, "_enabled", True)
+    mock_client.case_fields.get_priorities = AsyncMock(
+        side_effect=ConnectionError("transient network glitch"),
+    )
+
+    with caplog.at_level(logging.WARNING, logger=_CP_LOGGER):
+        asyncio.run(cp.preload_caches(mock_client))
+
+    priorities_records = [
+        r for r in caplog.records
+        if r.name == _CP_LOGGER and "priorities" in r.getMessage()
+        and r.levelno >= logging.WARNING
+    ]
+    assert len(priorities_records) == 1
+    assert priorities_records[0].levelno == logging.WARNING
+    assert "auth/permission" not in priorities_records[0].getMessage()
