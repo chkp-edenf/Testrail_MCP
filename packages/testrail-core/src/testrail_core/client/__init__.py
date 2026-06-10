@@ -17,6 +17,7 @@ from testrail_core.api.projects import ProjectsClient
 from testrail_core.api.results import ResultsClient
 from testrail_core.api.runs import RunsClient
 from testrail_core.api.sections import SectionsClient
+from testrail_core.api.shared_steps import SharedStepsClient
 from testrail_core.api.statuses import StatusesClient
 from testrail_core.api.suites import SuitesClient
 from testrail_core.api.tests import TestsClient
@@ -55,6 +56,7 @@ class TestRailClient(BaseAPIClient):
         self.milestones = MilestonesClient(self)
         self.configs = ConfigsClient(self)
         self.attachments = AttachmentsClient(self)
+        self.shared_steps = SharedStepsClient(self)
 
 
 __all__ = [

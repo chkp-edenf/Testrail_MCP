@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TestRail MCP Server v2.0.0 - A Model Context Protocol server that connects AI assistants to TestRail instances. The dispatcher exposes **68 flat MCP tools** (one per TestRail v2 endpoint), with the bun913-fork camelCase aliases resolved transparently at the dispatcher entry.
+TestRail MCP Server v2.0.0 - A Model Context Protocol server that connects AI assistants to TestRail instances. The dispatcher exposes **74 flat MCP tools** (one per TestRail v2 endpoint), with the bun913-fork camelCase aliases resolved transparently at the dispatcher entry.
 
 **Key Capabilities:**
-- 68 flat MCP tools spanning every TestRail v2 endpoint
+- 74 flat MCP tools spanning every TestRail v2 endpoint
 - Server-side gates: `TESTRAIL_READ_ONLY` write-block, `TESTRAIL_ALLOWED_TOOLS` allowlist
 - bun913-compat aliases (gated by `TESTRAIL_LEGACY_ALIASES`, default on)
 - Optional startup cache warm-up (`TESTRAIL_PRELOAD_CACHE`)
@@ -58,7 +58,7 @@ uv cache clean testrail-mcp --force
 
 2. **`testrail-mcp`** (top-level `src/`) — thin MCP wrapper
    - `src/stdio.py` - Entry point, MCP server initialization, env validation
-   - `src/server/api/tools.py` - 68 flat tool definitions
+   - `src/server/api/tools.py` - 74 flat tool definitions
    - `src/server/api/__init__.py` - Tool handler registry / dispatcher
    - `src/server/api/access_control.py` - `TESTRAIL_READ_ONLY` + `TESTRAIL_ALLOWED_TOOLS` gates
    - `src/server/api/aliases.py` - bun913 28-alias compat layer
@@ -122,7 +122,7 @@ The server normalizes URLs automatically in `stdio.py` and `base_client.py`.
 
 ## Tool Organization
 
-**68 flat MCP tools** — one per TestRail operation. Tool names are snake_case (`get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 alias layer (`TESTRAIL_LEGACY_ALIASES=1`, default) accepts the camelCase variants from the bun913 fork.
+**74 flat MCP tools** — one per TestRail operation. Tool names are snake_case (`get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 alias layer (`TESTRAIL_LEGACY_ALIASES=1`, default) accepts the camelCase variants from the bun913 fork.
 
 | Resource | Tools |
 |---|---|
@@ -139,12 +139,13 @@ The server normalizes URLs automatically in `stdio.py` and `base_client.py`.
 | Configs | `get_configs`, `add_config_group`, `add_config` |
 | Metadata | `get_case_fields`, `get_case_types`, `get_priorities`, `get_statuses`, `get_templates` |
 | Attachments | `list_attachments`, `get_attachment`, `upload_attachment`, `delete_attachment` |
+| Shared Steps | `get_shared_steps`, `get_shared_step`, `get_shared_step_history`, `add_shared_step`, `update_shared_step`, `delete_shared_step` |
 | Health | `get_server_health` |
 
 **Dispatcher path** (every tool call):
 1. Alias resolution (`aliases.py`) — camelCase → snake_case if `TESTRAIL_LEGACY_ALIASES=1`
 2. Allowlist gate (`access_control.py`) — reject if `TESTRAIL_ALLOWED_TOOLS` is set and the tool isn't in it
-3. Read-only gate (`access_control.py`) — reject all 36 write tools if `TESTRAIL_READ_ONLY` is truthy
+3. Read-only gate (`access_control.py`) — reject all 39 write tools if `TESTRAIL_READ_ONLY` is truthy
 4. Handler dispatch (`server/api/__init__.py`) — route to per-resource handler
 
 ## Environment Variables
@@ -155,7 +156,7 @@ The server normalizes URLs automatically in `stdio.py` and `base_client.py`.
 - `TESTRAIL_API_KEY` - API key from TestRail My Settings
 
 **Optional — server-side gates:**
-- `TESTRAIL_READ_ONLY` (default `0`) - When truthy (`1`/`true`/`yes`/`on`), the dispatcher blocks every write tool (the canonical 36-tool write set) and returns an error to the AI client. Read tools unaffected.
+- `TESTRAIL_READ_ONLY` (default `0`) - When truthy (`1`/`true`/`yes`/`on`), the dispatcher blocks every write tool (the canonical 39-tool write set) and returns an error to the AI client. Read tools unaffected.
 - `TESTRAIL_ALLOWED_TOOLS` (default *unset* = all) - Comma-separated allowlist. When set, any tool not listed is rejected at the dispatcher. Combine with `TESTRAIL_READ_ONLY` to narrow further.
 - `TESTRAIL_LEGACY_ALIASES` (default `1` = on) - Resolve the 28 bun913 camelCase aliases to canonical snake_case names. Set to `0` once your client has migrated.
 - `TESTRAIL_PRELOAD_CACHE` (default `0`) - When truthy, eagerly fetches `case_fields`, `statuses`, `priorities`, `case_types` at startup. Failures are non-fatal.
@@ -224,7 +225,7 @@ Example: `get_cases` with filters:
 
 **MCP wrapper (`src/`):**
 - `src/stdio.py` - Entry point (stdio mode)
-- `src/server/api/tools.py` - 68 flat tool definitions
+- `src/server/api/tools.py` - 74 flat tool definitions
 - `src/server/api/__init__.py` - Dispatcher (alias resolve → allowlist → read-only → handler)
 - `src/server/api/access_control.py` - Read-only + allowlist gates
 - `src/server/api/aliases.py` - 28 bun913 camelCase aliases

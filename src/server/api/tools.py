@@ -1122,6 +1122,121 @@ ENTITY TYPES: case, run, plan, test (not result)""",
             }
         ),
 
+        # ==================== SHARED STEPS ====================
+        Tool(
+            name="get_shared_steps",
+            description="""Get shared steps (reusable test step sets) for a project. Requires TestRail 7.0+.
+
+CROSS-REFERENCES:
+- Use returned shared step IDs with get_shared_step / update_shared_step / delete_shared_step
+- case_ids on each set lists the test cases that reference it""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "Project ID"},
+                    "created_after": {"type": "string", "description": "✅ Only shared steps created after this date (Unix timestamp or ISO 8601) (API-supported)"},
+                    "created_before": {"type": "string", "description": "✅ Only shared steps created before this date (Unix timestamp or ISO 8601) (API-supported)"},
+                    "created_by": {"type": "string", "description": "✅ Comma-separated list of creator user IDs (API-supported)"},
+                    "updated_after": {"type": "string", "description": "✅ Only shared steps updated after this date (Unix timestamp or ISO 8601) (API-supported)"},
+                    "updated_before": {"type": "string", "description": "✅ Only shared steps updated before this date (Unix timestamp or ISO 8601) (API-supported)"},
+                    "refs": {"type": "string", "description": "✅ Filter by a single reference ID, e.g. TR-a, 4291 (API-supported)"},
+                    "limit": {"type": "integer", "description": "Maximum number of shared steps to return (default 250)"},
+                    "offset": {"type": "integer", "description": "Number of shared steps to skip for pagination (optional)"}
+                },
+                "required": ["project_id"]
+            }
+        ),
+        Tool(
+            name="get_shared_step",
+            description="Get details of a specific set of shared steps, including its steps and the case_ids that reference it. Requires TestRail 7.0+.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "shared_step_id": {"type": "string", "description": "Shared step ID"}
+                },
+                "required": ["shared_step_id"]
+            }
+        ),
+        Tool(
+            name="get_shared_step_history",
+            description="Get the change history of a set of shared steps. Requires TestRail 7.3+.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "shared_step_id": {"type": "string", "description": "Shared step ID"}
+                },
+                "required": ["shared_step_id"]
+            }
+        ),
+        Tool(
+            name="add_shared_step",
+            description="""Create a new set of shared steps for a project. Requires TestRail 7.0+ and permission to add test cases.
+
+Step fields use HTML (not Markdown). Each step object supports: content, additional_info, expected, refs.""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "Project ID"},
+                    "title": {"type": "string", "description": "Title for the set of steps"},
+                    "custom_steps_separated": {
+                        "type": "array",
+                        "description": "Array of step objects. Each object may contain content/additional_info/expected/refs.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "content": {"type": "string", "description": "The 'Step' field (HTML)"},
+                                "additional_info": {"type": "string", "description": "The 'Additional Info' field (HTML)"},
+                                "expected": {"type": "string", "description": "The 'Expected Result' field (HTML)"},
+                                "refs": {"type": "string", "description": "Reference information for the 'References' field"}
+                            }
+                        }
+                    }
+                },
+                "required": ["project_id", "title"]
+            }
+        ),
+        Tool(
+            name="update_shared_step",
+            description="""Update an existing set of shared steps. Requires TestRail 7.0+ and permission to edit test cases.
+
+IMPORTANT: submitting custom_steps_separated REPLACES all existing steps. GET the shared step first, modify the full array, then send the complete list back.""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "shared_step_id": {"type": "string", "description": "Shared step ID"},
+                    "title": {"type": "string", "description": "New title for the set of steps (optional)"},
+                    "custom_steps_separated": {
+                        "type": "array",
+                        "description": "Complete array of step objects — REPLACES all existing steps.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "content": {"type": "string", "description": "The 'Step' field (HTML)"},
+                                "additional_info": {"type": "string", "description": "The 'Additional Info' field (HTML)"},
+                                "expected": {"type": "string", "description": "The 'Expected Result' field (HTML)"},
+                                "refs": {"type": "string", "description": "Reference information for the 'References' field"}
+                            }
+                        }
+                    }
+                },
+                "required": ["shared_step_id"]
+            }
+        ),
+        Tool(
+            name="delete_shared_step",
+            description="""Delete a set of shared steps. Requires TestRail 7.0+ and permission to delete test cases. CANNOT be undone.
+
+By default the steps are kept in the test cases that referenced them. Set keep_in_cases=false to also remove the steps from those cases.""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "shared_step_id": {"type": "string", "description": "Shared step ID"},
+                    "keep_in_cases": {"type": "string", "description": "Keep steps in referencing cases: true/false (default true). false also removes the steps from all referencing cases."}
+                },
+                "required": ["shared_step_id"]
+            }
+        ),
+
         # ==================== HEALTH CHECK ====================
         Tool(
             name="get_server_health",

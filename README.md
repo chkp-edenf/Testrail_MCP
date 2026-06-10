@@ -12,7 +12,7 @@
 
 ## Highlights
 
-- **68 flat MCP tools** covering every TestRail v2 endpoint (cases, runs, plans, results, attachments, …)
+- **74 flat MCP tools** covering every TestRail v2 endpoint (cases, runs, plans, results, attachments, …)
 - **Server-side gates** — `TESTRAIL_READ_ONLY` write-block, `TESTRAIL_ALLOWED_TOOLS` allowlist
 - **bun913-compat aliases** — drop-in replacement for the bun913 fork (gated by `TESTRAIL_LEGACY_ALIASES`, default on)
 - **Attachment support** — upload screenshots and files to cases, results, runs, plans
@@ -105,7 +105,7 @@ This enables natural language field values (e.g., "High" instead of priority ID 
 
 ## Available Tools
 
-The dispatcher exposes **68 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 compatibility layer (`TESTRAIL_LEGACY_ALIASES=1`, default on) accepts the camelCase aliases used by the bun913 fork (`getCases`, `addCase`, …) and resolves them to the canonical names.
+The dispatcher exposes **74 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 compatibility layer (`TESTRAIL_LEGACY_ALIASES=1`, default on) accepts the camelCase aliases used by the bun913 fork (`getCases`, `addCase`, …) and resolves them to the canonical names.
 
 | Resource | Read | Write |
 |---|---|---|
@@ -122,6 +122,7 @@ The dispatcher exposes **68 flat tools** — one per TestRail operation — grou
 | Configs | `get_configs` | `add_config_group`, `add_config` |
 | Metadata | `get_case_fields`, `get_case_types`, `get_priorities`, `get_statuses`, `get_templates` | — |
 | Attachments | `list_attachments`, `get_attachment` | `upload_attachment`, `delete_attachment` |
+| Shared Steps | `get_shared_steps`, `get_shared_step`, `get_shared_step_history` | `add_shared_step`, `update_shared_step`, `delete_shared_step` |
 | Health | `get_server_health` | — |
 
 ---
@@ -180,7 +181,7 @@ AI: Queries results, formats as a readable table.
          │ MCP Protocol (stdio JSON-RPC)
 ┌────────▼─────────┐
 │   MCP Server     │  (This project — runs via uvx)
-│   68 flat tools  │
+│   74 flat tools  │
 └────────┬─────────┘
          │ HTTPS + Basic Auth
 ┌────────▼─────────┐
@@ -190,7 +191,7 @@ AI: Queries results, formats as a readable table.
 
 **Two-package layout** (uv workspace; ADR-003):
 - **`testrail-core`** (`packages/testrail-core/`) — protocol-agnostic integration library: HTTP client, retry, rate-limit, four metadata caches, Pydantic schemas, exceptions, attachment handling. Importable directly by any Python consumer.
-- **`testrail-mcp`** (this top-level package) — thin MCP wrapper: stdio entry point, 68-tool dispatcher, server-side gates (read-only, allowlist, aliases, preload), per-resource handlers that adapt MCP tool calls to `testrail-core`.
+- **`testrail-mcp`** (this top-level package) — thin MCP wrapper: stdio entry point, 74-tool dispatcher, server-side gates (read-only, allowlist, aliases, preload), per-resource handlers that adapt MCP tool calls to `testrail-core`.
 
 **Four independent caches** (24h TTL, in-memory):
 - Field Cache — custom field name→ID mappings
