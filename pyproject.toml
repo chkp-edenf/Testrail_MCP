@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "testrail-mcp"
-version = "2.1.0"
+version = "2.2.0"
 description = "MCP server connecting AI assistants to TestRail - 68 flat tools, server-side gates, bun913-compat aliases, attachment support"
 readme = "README.md"
 license = "MIT"

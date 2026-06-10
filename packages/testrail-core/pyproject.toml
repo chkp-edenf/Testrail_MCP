@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "testrail-core"
-version = "2.1.0"
+version = "2.2.0"
 description = "TestRail integration core library — HTTP client, caches, rate limit, retry, schemas. Protocol-agnostic; the MCP wrapper is shipped separately."
 readme = "README.md"
 license = "MIT"

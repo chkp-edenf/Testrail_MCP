@@ -2,7 +2,7 @@
 
 **Connect AI assistants to your TestRail instance via the Model Context Protocol**
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)]()
 [![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)]()
 
@@ -14,7 +14,6 @@
 
 - **75 flat MCP tools** covering every TestRail v2 endpoint (cases, runs, plans, results, attachments, …)
 - **Server-side gates** — `TESTRAIL_READ_ONLY` write-block, `TESTRAIL_ALLOWED_TOOLS` allowlist
-- **bun913-compat aliases** — drop-in replacement for the bun913 fork (gated by `TESTRAIL_LEGACY_ALIASES`, default on)
 - **Attachment support** — upload screenshots and files to cases, results, runs, plans
 - **100% portable** — works with ANY TestRail instance (no hardcoded custom fields)
 - **Smart field handling** — say "Regression" instead of memorizing numeric IDs
@@ -105,7 +104,7 @@ This enables natural language field values (e.g., "High" instead of priority ID 
 
 ## Available Tools
 
-The dispatcher exposes **75 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`). The bun913 compatibility layer (`TESTRAIL_LEGACY_ALIASES=1`, default on) accepts the camelCase aliases used by the bun913 fork (`getCases`, `addCase`, …) and resolves them to the canonical names.
+The dispatcher exposes **75 flat tools** — one per TestRail operation — grouped below by resource. Tool names are snake_case (e.g. `get_cases`, `add_case`, `update_run`, `upload_attachment`).
 
 | Resource | Read | Write |
 |---|---|---|
@@ -191,7 +190,7 @@ AI: Queries results, formats as a readable table.
 
 **Two-package layout** (uv workspace; ADR-003):
 - **`testrail-core`** (`packages/testrail-core/`) — protocol-agnostic integration library: HTTP client, retry, rate-limit, four metadata caches, Pydantic schemas, exceptions, attachment handling. Importable directly by any Python consumer.
-- **`testrail-mcp`** (this top-level package) — thin MCP wrapper: stdio entry point, 74-tool dispatcher, server-side gates (read-only, allowlist, aliases, preload), per-resource handlers that adapt MCP tool calls to `testrail-core`.
+- **`testrail-mcp`** (this top-level package) — thin MCP wrapper: stdio entry point, 75-tool dispatcher, server-side gates (read-only, allowlist, preload), per-resource handlers that adapt MCP tool calls to `testrail-core`.
 
 **Four independent caches** (24h TTL, in-memory):
 - Field Cache — custom field name→ID mappings
@@ -228,12 +227,7 @@ AI: Queries results, formats as a readable table.
 |----------|---------|-------------|
 | `TESTRAIL_READ_ONLY` | `0` | When truthy (`1`, `true`, `yes`, `on`), every write tool is blocked at the dispatcher and returns an error to the AI client. Read tools are unaffected. Use to embed the server in environments that must not mutate TestRail data. |
 | `TESTRAIL_ALLOWED_TOOLS` | *(unset = all)* | Comma-separated allowlist of tool names. When set, any tool not in the list is rejected at the dispatcher. Combine with `TESTRAIL_READ_ONLY=1` to further narrow read access. |
-| `TESTRAIL_LEGACY_ALIASES` | `1` | When on, accepts the 28 camelCase tool names from the bun913 fork (`getCases`, `addCase`, …) and resolves them to canonical snake_case names. Set to `0` once your client has migrated. |
 | `TESTRAIL_PRELOAD_CACHE` | `0` | When truthy, eagerly fetches `case_fields`, `statuses`, `priorities`, and `case_types` at startup so the first tool call doesn't pay the cold-cache penalty. Failures during preload are non-fatal. |
-
-### bun913 migration
-
-If you're migrating from the bun913 fork, leave `TESTRAIL_LEGACY_ALIASES` at its default (`1`) — your existing camelCase tool names continue to work. Once your client is fully migrated to canonical snake_case names, set it to `0` to disable the alias resolver and reject the legacy names.
 
 ---
 
@@ -244,8 +238,8 @@ Pick whichever form fits your workflow. All four launch the same server.
 | Source | Command | Pinning |
 |---|---|---|
 | **PyPI (latest)** | `uvx testrail-mcp` | tracks the newest published v2.x |
-| **PyPI (pinned)** | `uvx testrail-mcp==2.1.0` | exact version |
-| **Git (release tag)** | `uvx --from git+https://github.com/chkp-edenf/Testrail_MCP@v2.1.0 testrail-mcp` | exact tag, no PyPI required |
+| **PyPI (pinned)** | `uvx testrail-mcp==2.2.0` | exact version |
+| **Git (release tag)** | `uvx --from git+https://github.com/chkp-edenf/Testrail_MCP@v2.2.0 testrail-mcp` | exact tag, no PyPI required |
 | **Git (pinned SHA)** | `uvx --from git+https://github.com/chkp-edenf/Testrail_MCP@<sha> testrail-mcp` | exact commit, audit-friendly |
 | **Local source** | `uvx --from /path/to/local/repo testrail-mcp` | live dev |
 
@@ -265,7 +259,7 @@ client = TestRailClient(config, rate_limiter=rate_limiter)
 projects = await client.projects.get_projects()
 ```
 
-> The PyPI install paths require v2.1.0 to be tagged and the publish workflow to run. Until then, use the `git+` forms above.
+> The PyPI install paths require v2.2.0 to be tagged and the publish workflow to run. Until then, use the `git+` forms above.
 
 ---
 
